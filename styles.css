@@ -325,11 +325,17 @@ body {
     border-left-color: var(--danger-color);
 }
 
+.certificate-card.repository-file {
+    border-left-color: #3b82f6;
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.05), rgba(59, 130, 246, 0.02));
+}
+
 .certificate-header {
     display: flex;
     justify-content: space-between;
     align-items: start;
     margin-bottom: 1rem;
+    gap: 1rem;
 }
 
 .certificate-title {
@@ -337,6 +343,25 @@ body {
     font-weight: 700;
     color: var(--dark-color);
     margin: 0;
+    flex: 1;
+}
+
+.certificate-badges {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+}
+
+.pdf-badge {
+    display: inline-block;
+    padding: 0.35rem 0.75rem;
+    background: #dbeafe;
+    color: #1e40af;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 600;
 }
 
 .status-badge {
@@ -407,6 +432,10 @@ body {
     font-size: 0.9rem;
     font-weight: 600;
     transition: var(--transition);
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .btn-edit {
@@ -425,6 +454,16 @@ body {
 
 .btn-delete:hover {
     background: #dc2626;
+}
+
+.btn-view {
+    background: #3b82f6;
+    color: white;
+    width: 100%;
+}
+
+.btn-view:hover {
+    background: #2563eb;
 }
 
 /* Empty State */
@@ -502,6 +541,14 @@ body {
 
     .certificates-grid {
         grid-template-columns: 1fr;
+    }
+
+    .certificate-header {
+        flex-direction: column;
+    }
+
+    .certificate-badges {
+        justify-content: flex-start;
     }
 
     .certificate-actions {
