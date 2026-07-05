@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lifting Gears Inspection Certificates</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 40px;
+            max-width: 800px;
+            width: 100%;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 500;
+        }
+
+        input, textarea, select {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+            font-family: inherit;
+            transition: border-color 0.3s;
+        }
+
+        input:focus, textarea:focus, select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 12px 30px;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            width: 100%;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        .certificate-list {
+            margin-top: 30px;
+        }
+
+        .certificate-item {
+            background: #f8f9fa;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 5px;
+            border-left: 4px solid #667eea;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .certificate-info {
+            flex: 1;
+        }
+
+        .certificate-info h3 {
+            margin-bottom: 5px;
+            color: #333;
+            font-size: 16px;
+        }
+
+        .certificate-info p {
+            color: #666;
+            font-size: 13px;
+            margin-bottom: 3px;
+        }
+
+        .certificate-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn-small {
+            padding: 8px 15px;
+            font-size: 12px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .btn-small:hover {
+            background: #764ba2;
+        }
+
+        .btn-delete {
+            background: #e74c3c;
+        }
+
+        .btn-delete:hover {
+            background: #c0392b;
+        }
+
+        .empty-state {
+            text-align: center;
+            color: #999;
+            padding: 20px;
+        }
+
+        .success-message {
+            background: #d4edda;
+            color: #155724;
+            padding: 12px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                padding: 20px;
+            }
+
+            h1 {
+                font-size: 24px;
+            }
+
+            .certificate-item {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .certificate-actions {
+                width: 100%;
+                margin-top: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 Lifting Gears Inspection Certificates</h1>
+        <p class="subtitle">Track and manage your lifting gear inspection certificates</p>
+
+        <div class="success-message" id="successMessage"></div>
+
+        <div class="form-group">
+            <label for="gearName">Gear Name *</label>
+            <input type="text" id="gearName" placeholder="e.g., Chain Hoist #1">
+        </div>
+
+        <div class="form-group">
+            <label for="certNumber">Certificate Number *</label>
+            <input type="text" id="certNumber" placeholder="e.g., CERT-2024-001">
+        </div>
+
+        <div class="form-group">
+            <label for="inspectionDate">Inspection Date *</label>
+            <input type="date" id="inspectionDate">
+        </div>
+
+        <div class="form-group">
+            <label for="nextDue">Next Inspection Due *</label>
+            <input type="date" id="nextDue">
+        </div>
+
+        <div class="form-group">
+            <label for="inspector">Inspector Name</label>
+            <input type="text" id="inspector" placeholder="Inspector name">
+        </div>
+
+        <div class="form-group">
+            <label for="status">Status</label>
+            <select id="status">
+                <option value="Valid">Valid</option>
+                <option value="Pending">Pending</option>
+                <option value="Expired">Expired</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label for="notes">Notes</label>
+            <textarea id="notes" rows="3" placeholder="Add any additional notes..."></textarea>
+        </div>
+
+        <button onclick="addCertificate()">Add Certificate</button>
+
+        <div class="certificate-list">
+            <h2 style="margin-bottom: 15px; color: #333;">Certificates</h2>
+            <div id="certificatesList" class="empty-state">No certificates yet. Add one to get started!</div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
