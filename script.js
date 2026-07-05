@@ -1,121 +1,289 @@
-// Initialize the page
+// Certificate storage in localStorage
+const STORAGE_KEY = 'liftingGearsCertificates';
+let certificates = [];
+let filteredStatus = 'all';
+
+// Initialize app on page load
 document.addEventListener('DOMContentLoaded', function() {
+    loadCertificates();
     initializeNavigation();
     initializeSearch();
-    initializeForm();
+    updateStats();
+    renderCertificates();
 });
+
+// Load certificates from localStorage
+function loadCertificates() {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    certificates = stored ? JSON.parse(stored) : [];
+}
+
+// Save certificates to localStorage
+function saveCertificates() {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(certificates));
+}
+
+// Add new certificate
+function addCertificate(event) {
+    event.preventDefault();
+
+    const newCertificate = {
+        id: Date.now(),
+        gearName: document.getElementById('gearName').value,
+        certNumber: document.getElementById('certNumber').value,
+        inspectionDate: document.getElementById('inspectionDate').value,
+        nextDue: document.getElementById('nextDue').value,
+        inspector: document.getElementById('inspector').value,
+        status: document.getElementById('status').value,
+        notes: document.getElementById('notes').value,
+        addedDate: new Date().toLocaleDateString()
+    };
+
+    certificates.push(newCertificate);
+    saveCertificates();
+
+    // Clear form
+    event.target.reset();
+
+    // Show success message
+    showNotification('Certificate added successfully!', 'success');
+
+    // Update display
+    updateStats();
+    renderCertificates();
+
+    // Scroll to list
+    setTimeout(() => {
+        scrollToSection('list');
+    }, 500);
+}
+
+// Delete certificate
+function deleteCertificate(id) {
+    if (confirm('Are you sure you want to delete this certificate?')) {
+        certificates = certificates.filter(cert => cert.id !== id);
+        saveCertificates();
+        updateStats();
+        renderCertificates();
+        showNotification('Certificate deleted!', 'success');
+    }
+}
+
+// Edit certificate
+function editCertificate(id) {
+    const certificate = certificates.find(cert => cert.id === id);
+    if (certificate) {
+        // Populate form with certificate data
+        document.getElementById('gearName').value = certificate.gearName;
+        document.getElementById('certNumber').value = certificate.certNumber;
+        document.getElementById('inspectionDate').value = certificate.inspectionDate;
+        document.getElementById('nextDue').value = certificate.nextDue;
+        document.getElementById('inspector').value = certificate.inspector;
+        document.getElementById('status').value = certificate.status;
+        document.getElementById('notes').value = certificate.notes;
+
+        // Delete the old one
+        deleteCertificate(id);
+
+        // Scroll to form
+        scrollToSection('add');
+
+        showNotification('Certificate loaded for editing. Make changes and save.', 'info');
+    }
+}
+
+// Filter certificates by status
+function filterCertificates(status) {
+    filteredStatus = status;
+
+    // Update active button
+    document.querySelectorAll('.filter-btn').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    event.target.classList.add('active');
+
+    renderCertificates();
+}
+
+// Search certificates
+function searchCertificates(query) {
+    const searchTerm = query.toLowerCase();
+    return certificates.filter(cert => {
+        return (
+            cert.gearName.toLowerCase().includes(searchTerm) ||
+            cert.certNumber.toLowerCase().includes(searchTerm) ||
+            cert.inspector.toLowerCase().includes(searchTerm) ||
+            cert.notes.toLowerCase().includes(searchTerm)
+        );
+    });
+}
+
+// Render certificates
+function renderCertificates() {
+    const listElement = document.getElementById('certificatesList');
+    let certificatesToDisplay = certificates;
+
+    // Apply status filter
+    if (filteredStatus !== 'all') {
+        certificatesToDisplay = certificatesToDisplay.filter(cert => cert.status === filteredStatus);
+    }
+
+    // Apply search filter
+    const searchTerm = document.getElementById('searchInput').value;
+    if (searchTerm) {
+        certificatesToDisplay = searchCertificates(searchTerm);
+    }
+
+    if (certificatesToDisplay.length === 0) {
+        listElement.innerHTML = '<div class="empty-state"><p>No certificates found. Try adjusting your filters or add a new one!</p></div>';
+        return;
+    }
+
+    listElement.innerHTML = certificatesToDisplay.map(cert => createCertificateCard(cert)).join('');
+}
+
+// Create certificate card HTML
+function createCertificateCard(cert) {
+    const dueDate = new Date(cert.nextDue);
+    const today = new Date();
+    const isExpiring = dueDate < today;
+
+    const statusClass = cert.status.toLowerCase();
+
+    return `
+        <div class="certificate-card ${statusClass}">
+            <div class="certificate-header">
+                <h3 class="certificate-title">${escapeHtml(cert.gearName)}</h3>
+                <span class="status-badge ${statusClass}">${cert.status}</span>
+            </div>
+
+            <div class="certificate-info">
+                <div class="info-row">
+                    <span class="info-label">Certificate #:</span>
+                    <span class="info-value">${escapeHtml(cert.certNumber)}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Inspection Date:</span>
+                    <span class="info-value">${formatDate(cert.inspectionDate)}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Next Due:</span>
+                    <span class="info-value ${isExpiring ? 'style="color: #ef4444; font-weight: bold;"' : ''}">${formatDate(cert.nextDue)}</span>
+                </div>
+                ${cert.inspector ? `
+                <div class="info-row">
+                    <span class="info-label">Inspector:</span>
+                    <span class="info-value">${escapeHtml(cert.inspector)}</span>
+                </div>
+                ` : ''}
+            </div>
+
+            ${cert.notes ? `
+            <div class="certificate-notes">
+                <strong>Notes:</strong> ${escapeHtml(cert.notes)}
+            </div>
+            ` : ''}
+
+            <div class="certificate-actions">
+                <button class="btn-small btn-edit" onclick="editCertificate(${cert.id})">✏️ Edit</button>
+                <button class="btn-small btn-delete" onclick="deleteCertificate(${cert.id})">🗑️ Delete</button>
+            </div>
+        </div>
+    `;
+}
+
+// Update statistics
+function updateStats() {
+    const totalCount = certificates.length;
+    const validCount = certificates.filter(c => c.status === 'Valid').length;
+    const expiredCount = certificates.filter(c => c.status === 'Expired').length;
+
+    document.getElementById('totalCount').textContent = totalCount;
+    document.getElementById('validCount').textContent = validCount;
+    document.getElementById('expiredCount').textContent = expiredCount;
+}
 
 // Navigation functionality
 function initializeNavigation() {
     const navLinks = document.querySelectorAll('.nav-link');
-    
+
     navLinks.forEach(link => {
         link.addEventListener('click', function(e) {
             e.preventDefault();
-            
+
             // Remove active class from all links
             navLinks.forEach(l => l.classList.remove('active'));
-            
+
             // Add active class to clicked link
             this.classList.add('active');
-            
+
             // Get target section
             const targetId = this.getAttribute('href').substring(1);
-            const targetSection = document.getElementById(targetId);
-            
-            if (targetSection) {
-                // Smooth scroll to section
-                targetSection.scrollIntoView({
-                    behavior: 'smooth',
-                    block: 'start'
-                });
-            }
+            scrollToSection(targetId);
         });
     });
 }
 
-// Search functionality
+// Initialize search functionality
 function initializeSearch() {
     const searchInput = document.getElementById('searchInput');
-    const certificateCards = document.querySelectorAll('.certificate-card');
-    
+
     if (searchInput) {
         searchInput.addEventListener('keyup', function() {
-            const searchTerm = this.value.toLowerCase();
-            
-            certificateCards.forEach(card => {
-                const cardText = card.textContent.toLowerCase();
-                if (cardText.includes(searchTerm)) {
-                    card.style.display = '';
-                    card.style.animation = 'fadeIn 0.3s ease';
-                } else {
-                    card.style.display = 'none';
-                }
-            });
+            renderCertificates();
         });
     }
 }
 
-// Form submission
-function initializeForm() {
-    const form = document.getElementById('certificateForm');
-    
-    if (form) {
-        form.addEventListener('submit', function(e) {
-            e.preventDefault();
-            
-            const certName = document.getElementById('certName').value;
-            const certFile = document.getElementById('certFile').files[0];
-            const certDate = document.getElementById('certDate').value;
-            
-            // Validate form
-            if (!certName || !certFile || !certDate) {
-                alert('Please fill in all fields');
-                return;
-            }
-            
-            // Show success message
-            alert(`Certificate "${certName}" submitted successfully!\n\nNote: In a production environment, this would upload to a server.`);
-            
-            // Reset form
-            form.reset();
-            
-            // Optionally scroll to certificates section
-            document.getElementById('certificates').scrollIntoView({
-                behavior: 'smooth'
-            });
-        });
+// Scroll to section
+function scrollToSection(sectionId) {
+    const section = document.getElementById(sectionId);
+    if (section) {
+        section.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
 }
 
-// Add fade-in animation
-const style = document.createElement('style');
-style.innerHTML = `
-    @keyframes fadeIn {
-        from {
-            opacity: 0;
-            transform: scale(0.95);
-        }
-        to {
-            opacity: 1;
-            transform: scale(1);
-        }
-    }
-`;
-document.head.appendChild(style);
+// Show notification
+function showNotification(message, type = 'info') {
+    const notification = document.createElement('div');
+    notification.className = `notification notification-${type}`;
+    notification.textContent = message;
+    notification.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        padding: 1rem 1.5rem;
+        background: ${type === 'success' ? '#10b981' : type === 'error' ? '#ef4444' : '#667eea'};
+        color: white;
+        border-radius: 8px;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+        z-index: 2000;
+        animation: slideIn 0.3s ease;
+    `;
 
-// Utility function to load certificates dynamically (for future enhancement)
-function loadCertificates() {
-    const certificatesGrid = document.getElementById('certificatesGrid');
-    
-    // This function can be enhanced to load from an API or database
-    // For now, it will work with static content
+    document.body.appendChild(notification);
+
+    setTimeout(() => {
+        notification.style.animation = 'fadeOut 0.3s ease';
+        notification.style.opacity = '0';
+        setTimeout(() => notification.remove(), 300);
+    }, 3000);
 }
 
-// Export functions for future use
-window.certificateApp = {
-    loadCertificates: loadCertificates,
-    initializeNavigation: initializeNavigation,
-    initializeSearch: initializeSearch,
-    initializeForm: initializeForm
-};
+// Format date for display
+function formatDate(dateString) {
+    const options = { year: 'numeric', month: 'short', day: 'numeric' };
+    return new Date(dateString).toLocaleDateString('en-US', options);
+}
+
+// Escape HTML to prevent XSS
+function escapeHtml(text) {
+    const map = {
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#039;'
+    };
+    return text.replace(/[&<>"']/g, m => map[m]);
+}
