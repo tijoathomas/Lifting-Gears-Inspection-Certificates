@@ -1,11 +1,15 @@
 // Certificate storage in localStorage
 const STORAGE_KEY = 'liftingGearsCertificates';
+const REPO_OWNER = 'tijoathomas';
+const REPO_NAME = 'Lifting-Gears-Inspection-Certificates';
 let certificates = [];
 let filteredStatus = 'all';
+let repositoryCertificates = [];
 
 // Initialize app on page load
 document.addEventListener('DOMContentLoaded', function() {
     loadCertificates();
+    loadRepositoryCertificates();
     initializeNavigation();
     initializeSearch();
     updateStats();
@@ -16,6 +20,42 @@ document.addEventListener('DOMContentLoaded', function() {
 function loadCertificates() {
     const stored = localStorage.getItem(STORAGE_KEY);
     certificates = stored ? JSON.parse(stored) : [];
+}
+
+// Load PDF certificates from GitHub repository
+async function loadRepositoryCertificates() {
+    try {
+        const apiUrl = `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents`;
+        const response = await fetch(apiUrl);
+        const files = await response.json();
+        
+        repositoryCertificates = files
+            .filter(file => file.name.toLowerCase().endsWith('.pdf'))
+            .map(file => {
+                // Extract name without extension
+                const fileName = file.name.replace(/\.pdf$/i, '');
+                
+                return {
+                    id: `repo_${file.sha}`,
+                    gearName: fileName,
+                    certNumber: file.name,
+                    inspectionDate: new Date(file.created_at || Date.now()).toISOString().split('T')[0],
+                    nextDue: new Date(new Date().getTime() + 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+                    inspector: 'Repository File',
+                    status: 'Valid',
+                    notes: `PDF file stored in repository - Last updated: ${new Date(file.updated_at || Date.now()).toLocaleDateString()}`,
+                    fileUrl: file.download_url,
+                    isRepositoryFile: true
+                };
+            });
+        
+        // Merge repository certificates with localStorage certificates
+        certificates = [...repositoryCertificates, ...certificates];
+        updateStats();
+        renderCertificates();
+    } catch (error) {
+        console.error('Error loading repository certificates:', error);
+    }
 }
 
 // Save certificates to localStorage
@@ -36,10 +76,13 @@ function addCertificate(event) {
         inspector: document.getElementById('inspector').value,
         status: document.getElementById('status').value,
         notes: document.getElementById('notes').value,
-        addedDate: new Date().toLocaleDateString()
+        addedDate: new Date().toLocaleDateString(),
+        isRepositoryFile: false
     };
 
+    certificates = certificates.filter(c => !c.isRepositoryFile);
     certificates.push(newCertificate);
+    certificates = [...repositoryCertificates, ...certificates];
     saveCertificates();
 
     // Clear form
@@ -61,6 +104,14 @@ function addCertificate(event) {
 // Delete certificate
 function deleteCertificate(id) {
     if (confirm('Are you sure you want to delete this certificate?')) {
+        const cert = certificates.find(c => c.id === id);
+        
+        // Prevent deletion of repository files
+        if (cert && cert.isRepositoryFile) {
+            showNotification('Repository certificates cannot be deleted. Delete the PDF file from the repository instead.', 'error');
+            return;
+        }
+        
         certificates = certificates.filter(cert => cert.id !== id);
         saveCertificates();
         updateStats();
@@ -73,6 +124,12 @@ function deleteCertificate(id) {
 function editCertificate(id) {
     const certificate = certificates.find(cert => cert.id === id);
     if (certificate) {
+        // Prevent editing of repository files
+        if (certificate.isRepositoryFile) {
+            showNotification('Repository certificates cannot be edited. Upload a new certificate file or add a new entry manually.', 'info');
+            return;
+        }
+        
         // Populate form with certificate data
         document.getElementById('gearName').value = certificate.gearName;
         document.getElementById('certNumber').value = certificate.certNumber;
@@ -149,12 +206,19 @@ function createCertificateCard(cert) {
     const isExpiring = dueDate < today;
 
     const statusClass = cert.status.toLowerCase();
+    
+    // Add special styling for repository files
+    const repoFileClass = cert.isRepositoryFile ? 'repository-file' : '';
+    const pdfBadge = cert.isRepositoryFile ? '<span class="pdf-badge">📄 PDF</span>' : '';
 
     return `
-        <div class="certificate-card ${statusClass}">
+        <div class="certificate-card ${statusClass} ${repoFileClass}">
             <div class="certificate-header">
                 <h3 class="certificate-title">${escapeHtml(cert.gearName)}</h3>
-                <span class="status-badge ${statusClass}">${cert.status}</span>
+                <div class="certificate-badges">
+                    ${pdfBadge}
+                    <span class="status-badge ${statusClass}">${cert.status}</span>
+                </div>
             </div>
 
             <div class="certificate-info">
@@ -185,8 +249,12 @@ function createCertificateCard(cert) {
             ` : ''}
 
             <div class="certificate-actions">
-                <button class="btn-small btn-edit" onclick="editCertificate(${cert.id})">✏️ Edit</button>
-                <button class="btn-small btn-delete" onclick="deleteCertificate(${cert.id})">🗑️ Delete</button>
+                ${cert.isRepositoryFile ? `
+                    <a href="${cert.fileUrl}" target="_blank" class="btn-small btn-view">📥 Download PDF</a>
+                ` : `
+                    <button class="btn-small btn-edit" onclick="editCertificate(${cert.id})">✏️ Edit</button>
+                    <button class="btn-small btn-delete" onclick="deleteCertificate(${cert.id})">🗑️ Delete</button>
+                `}
             </div>
         </div>
     `;
