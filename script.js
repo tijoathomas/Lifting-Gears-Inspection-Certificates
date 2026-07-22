@@ -4,6 +4,7 @@ const REPO_OWNER = 'tijoathomas';
 const REPO_NAME = 'Lifting-Gears-Inspection-Certificates';
 let certificates = [];
 let filteredStatus = 'all';
+let currentSortBy = 'name';
 let repositoryCertificates = [];
 
 // Initialize app on page load
@@ -14,6 +15,7 @@ document.addEventListener('DOMContentLoaded', function() {
     initializeSearch();
     updateStats();
     renderCertificates();
+    updateLastUpdated();
 });
 
 // Load certificates from localStorage
@@ -60,7 +62,8 @@ async function loadRepositoryCertificates() {
 
 // Save certificates to localStorage
 function saveCertificates() {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(certificates));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(certificates.filter(c => !c.isRepositoryFile)));
+    updateLastUpdated();
 }
 
 // Add new certificate
@@ -75,7 +78,7 @@ function addCertificate(event) {
         nextDue: document.getElementById('nextDue').value,
         inspector: document.getElementById('inspector').value,
         status: document.getElementById('status').value,
-        notes: document.getElementById('notes').value,
+        notes: document.getElementById('notes').value.substring(0, 500),
         addedDate: new Date().toLocaleDateString(),
         isRepositoryFile: false
     };
@@ -89,7 +92,7 @@ function addCertificate(event) {
     event.target.reset();
 
     // Show success message
-    showNotification('Certificate added successfully!', 'success');
+    showNotification('✓ Certificate added successfully!', 'success');
 
     // Update display
     updateStats();
@@ -97,18 +100,18 @@ function addCertificate(event) {
 
     // Scroll to list
     setTimeout(() => {
-        scrollToSection('list');
+        scrollToSection('certificates');
     }, 500);
 }
 
 // Delete certificate
 function deleteCertificate(id) {
-    if (confirm('Are you sure you want to delete this certificate?')) {
+    if (confirm('Are you sure you want to delete this certificate? This action cannot be undone.')) {
         const cert = certificates.find(c => c.id === id);
         
         // Prevent deletion of repository files
         if (cert && cert.isRepositoryFile) {
-            showNotification('Repository certificates cannot be deleted. Delete the PDF file from the repository instead.', 'error');
+            showNotification('⚠️ Repository certificates cannot be deleted from here. Delete the PDF file from the repository instead.', 'error');
             return;
         }
         
@@ -116,7 +119,7 @@ function deleteCertificate(id) {
         saveCertificates();
         updateStats();
         renderCertificates();
-        showNotification('Certificate deleted!', 'success');
+        showNotification('✓ Certificate deleted!', 'success');
     }
 }
 
@@ -126,7 +129,7 @@ function editCertificate(id) {
     if (certificate) {
         // Prevent editing of repository files
         if (certificate.isRepositoryFile) {
-            showNotification('Repository certificates cannot be edited. Upload a new certificate file or add a new entry manually.', 'info');
+            showNotification('ℹ️ Repository certificates cannot be edited. Download the PDF or add a new entry manually.', 'info');
             return;
         }
         
@@ -145,7 +148,7 @@ function editCertificate(id) {
         // Scroll to form
         scrollToSection('add');
 
-        showNotification('Certificate loaded for editing. Make changes and save.', 'info');
+        showNotification('ℹ️ Certificate loaded for editing. Make changes and save.', 'info');
     }
 }
 
@@ -160,6 +163,35 @@ function filterCertificates(status) {
     event.target.classList.add('active');
 
     renderCertificates();
+}
+
+// Sort certificates
+function sortCertificates(sortBy) {
+    currentSortBy = sortBy;
+    renderCertificates();
+}
+
+// Apply sorting logic
+function applySorting(certs) {
+    const sorted = [...certs];
+    
+    switch(currentSortBy) {
+        case 'name':
+            sorted.sort((a, b) => a.gearName.localeCompare(b.gearName));
+            break;
+        case 'date-asc':
+            sorted.sort((a, b) => new Date(a.nextDue) - new Date(b.nextDue));
+            break;
+        case 'date-desc':
+            sorted.sort((a, b) => new Date(b.nextDue) - new Date(a.nextDue));
+            break;
+        case 'status':
+            const statusOrder = { 'Expired': 0, 'Pending': 1, 'Valid': 2 };
+            sorted.sort((a, b) => statusOrder[a.status] - statusOrder[b.status]);
+            break;
+    }
+    
+    return sorted;
 }
 
 // Search certificates
@@ -191,6 +223,9 @@ function renderCertificates() {
         certificatesToDisplay = searchCertificates(searchTerm);
     }
 
+    // Apply sorting
+    certificatesToDisplay = applySorting(certificatesToDisplay);
+
     if (certificatesToDisplay.length === 0) {
         listElement.innerHTML = '<div class="empty-state"><p>No certificates found. Try adjusting your filters or add a new one!</p></div>';
         return;
@@ -204,6 +239,7 @@ function createCertificateCard(cert) {
     const dueDate = new Date(cert.nextDue);
     const today = new Date();
     const isExpiring = dueDate < today;
+    const daysUntilDue = Math.ceil((dueDate - today) / (1000 * 60 * 60 * 24));
 
     const statusClass = cert.status.toLowerCase();
     
@@ -232,7 +268,7 @@ function createCertificateCard(cert) {
                 </div>
                 <div class="info-row">
                     <span class="info-label">Next Due:</span>
-                    <span class="info-value ${isExpiring ? 'style="color: #ef4444; font-weight: bold;"' : ''}">${formatDate(cert.nextDue)}</span>
+                    <span class="info-value ${isExpiring ? 'style="color: #ef4444; font-weight: bold;"' : ''}">${formatDate(cert.nextDue)}${!isExpiring && daysUntilDue > 0 ? ` <small>(${daysUntilDue} days)</small>` : isExpiring ? ' <small>(OVERDUE)</small>' : ''}</span>
                 </div>
                 ${cert.inspector ? `
                 <div class="info-row">
@@ -244,7 +280,7 @@ function createCertificateCard(cert) {
 
             ${cert.notes ? `
             <div class="certificate-notes">
-                <strong>Notes:</strong> ${escapeHtml(cert.notes)}
+                <strong>📝 Notes:</strong> ${escapeHtml(cert.notes)}
             </div>
             ` : ''}
 
@@ -264,11 +300,20 @@ function createCertificateCard(cert) {
 function updateStats() {
     const totalCount = certificates.length;
     const validCount = certificates.filter(c => c.status === 'Valid').length;
+    const pendingCount = certificates.filter(c => c.status === 'Pending').length;
     const expiredCount = certificates.filter(c => c.status === 'Expired').length;
 
     document.getElementById('totalCount').textContent = totalCount;
     document.getElementById('validCount').textContent = validCount;
+    document.getElementById('pendingCount').textContent = pendingCount;
     document.getElementById('expiredCount').textContent = expiredCount;
+}
+
+// Update last updated time
+function updateLastUpdated() {
+    const now = new Date();
+    const timeString = now.toLocaleString();
+    document.getElementById('lastUpdated').textContent = timeString;
 }
 
 // Navigation functionality
@@ -320,13 +365,15 @@ function showNotification(message, type = 'info') {
         position: fixed;
         top: 20px;
         right: 20px;
-        padding: 1rem 1.5rem;
+        padding: 1.2rem 1.8rem;
         background: ${type === 'success' ? '#10b981' : type === 'error' ? '#ef4444' : '#667eea'};
         color: white;
         border-radius: 8px;
-        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
         z-index: 2000;
         animation: slideIn 0.3s ease;
+        font-weight: 500;
+        max-width: 400px;
     `;
 
     document.body.appendChild(notification);
@@ -335,7 +382,7 @@ function showNotification(message, type = 'info') {
         notification.style.animation = 'fadeOut 0.3s ease';
         notification.style.opacity = '0';
         setTimeout(() => notification.remove(), 300);
-    }, 3000);
+    }, 4000);
 }
 
 // Format date for display
