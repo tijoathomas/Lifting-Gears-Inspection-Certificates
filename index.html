@@ -3,7 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lifting Gears Inspection Certificates</title>
+    <meta name="description" content="Professional tracking and management system for lifting gear inspection certificates">
+    <meta name="theme-color" content="#667eea">
+    <title>Lifting Gears Inspection Certificates - Professional Management</title>
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -13,91 +15,31 @@
             <div class="logo">🔧 Lifting Gears</div>
             <div class="nav-links">
                 <a href="#home" class="nav-link active">Home</a>
+                <a href="#certificates" class="nav-link">Certificates</a>
                 <a href="#add" class="nav-link">Add Certificate</a>
-                <a href="#list" class="nav-link">View All</a>
+                <a href="#about" class="nav-link">About</a>
             </div>
+            <button class="mobile-menu-btn">☰</button>
         </div>
     </nav>
 
     <!-- Main Container -->
     <div class="main-container">
-        <!-- Home Section -->
+        <!-- Hero Section -->
         <section id="home" class="hero">
             <div class="hero-content">
                 <h1>Lifting Gears Inspection Certificates</h1>
                 <p>Professional tracking and management system for lifting gear inspection certificates</p>
-                <button class="btn-primary" onclick="scrollToSection('add')">Get Started</button>
+                <div class="hero-buttons">
+                    <button class="btn-primary btn-large" onclick="scrollToSection('certificates')">View Certificates</button>
+                    <button class="btn-secondary btn-large" onclick="scrollToSection('add')">Add New Entry</button>
+                </div>
             </div>
         </section>
 
-        <!-- Add Certificate Section -->
-        <section id="add" class="section">
+        <!-- Quick Stats Section -->
+        <section class="quick-stats">
             <div class="container">
-                <h2>📋 Add New Certificate</h2>
-                <form class="certificate-form" onsubmit="addCertificate(event)">
-                    <div class="form-grid">
-                        <div class="form-group">
-                            <label for="gearName">Gear Name *</label>
-                            <input type="text" id="gearName" placeholder="e.g., Chain Hoist #1" required>
-                        </div>
-
-                        <div class="form-group">
-                            <label for="certNumber">Certificate Number *</label>
-                            <input type="text" id="certNumber" placeholder="e.g., CERT-2024-001" required>
-                        </div>
-
-                        <div class="form-group">
-                            <label for="inspectionDate">Inspection Date *</label>
-                            <input type="date" id="inspectionDate" required>
-                        </div>
-
-                        <div class="form-group">
-                            <label for="nextDue">Next Inspection Due *</label>
-                            <input type="date" id="nextDue" required>
-                        </div>
-
-                        <div class="form-group">
-                            <label for="inspector">Inspector Name</label>
-                            <input type="text" id="inspector" placeholder="Inspector name">
-                        </div>
-
-                        <div class="form-group">
-                            <label for="status">Status</label>
-                            <select id="status">
-                                <option value="Valid">Valid</option>
-                                <option value="Pending">Pending</option>
-                                <option value="Expired">Expired</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <div class="form-group full-width">
-                        <label for="notes">Notes</label>
-                        <textarea id="notes" rows="3" placeholder="Add any additional notes..."></textarea>
-                    </div>
-
-                    <button type="submit" class="btn-primary btn-large">Add Certificate</button>
-                </form>
-            </div>
-        </section>
-
-        <!-- Certificates List Section -->
-        <section id="list" class="section">
-            <div class="container">
-                <div class="section-header">
-                    <h2>📊 Certificate Management</h2>
-                    <div class="search-bar">
-                        <input type="text" id="searchInput" placeholder="Search certificates..." class="search-input">
-                    </div>
-                </div>
-
-                <div class="filter-buttons">
-                    <button class="filter-btn active" onclick="filterCertificates('all')">All</button>
-                    <button class="filter-btn" onclick="filterCertificates('Valid')">Valid</button>
-                    <button class="filter-btn" onclick="filterCertificates('Pending')">Pending</button>
-                    <button class="filter-btn" onclick="filterCertificates('Expired')">Expired</button>
-                </div>
-
                 <div class="stats-row">
                     <div class="stat-card">
                         <div class="stat-number" id="totalCount">0</div>
@@ -105,17 +47,145 @@
                     </div>
                     <div class="stat-card">
                         <div class="stat-number" id="validCount">0</div>
-                        <div class="stat-label">Valid</div>
+                        <div class="stat-label">Valid & Current</div>
                     </div>
                     <div class="stat-card">
+                        <div class="stat-number" id="pendingCount">0</div>
+                        <div class="stat-label">Pending Review</div>
+                    </div>
+                    <div class="stat-card warning">
                         <div class="stat-number" id="expiredCount">0</div>
                         <div class="stat-label">Expired</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Certificates Section -->
+        <section id="certificates" class="section">
+            <div class="container">
+                <div class="section-header">
+                    <div>
+                        <h2>📊 Certificate Management</h2>
+                        <p class="section-subtitle">Track and manage all lifting gear inspection certificates</p>
+                    </div>
+                    <div class="search-bar">
+                        <input type="text" id="searchInput" placeholder="Search by equipment, certificate #..." class="search-input">
+                        <span class="search-icon">🔍</span>
+                    </div>
+                </div>
+
+                <div class="filter-section">
+                    <div class="filter-buttons">
+                        <button class="filter-btn active" onclick="filterCertificates('all')">All Certificates</button>
+                        <button class="filter-btn" onclick="filterCertificates('Valid')">✓ Valid</button>
+                        <button class="filter-btn" onclick="filterCertificates('Pending')">⏳ Pending</button>
+                        <button class="filter-btn" onclick="filterCertificates('Expired')">⚠️ Expired</button>
+                    </div>
+                    <div class="sort-options">
+                        <label for="sortSelect">Sort by:</label>
+                        <select id="sortSelect" onchange="sortCertificates(this.value)">
+                            <option value="name">Equipment Name</option>
+                            <option value="date-asc">Next Due (Earliest)</option>
+                            <option value="date-desc">Next Due (Latest)</option>
+                            <option value="status">Status</option>
+                        </select>
                     </div>
                 </div>
 
                 <div class="certificates-grid" id="certificatesList">
                     <div class="empty-state">
-                        <p>No certificates found. Start by adding one!</p>
+                        <p>Loading certificates...</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Add Certificate Section -->
+        <section id="add" class="section section-add">
+            <div class="container">
+                <h2>📋 Add New Certificate</h2>
+                <p class="section-subtitle">Register a new inspection certificate in the system</p>
+                <form class="certificate-form" onsubmit="addCertificate(event)">
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="gearName">Equipment/Gear Name <span class="required">*</span></label>
+                            <input type="text" id="gearName" placeholder="e.g., Chain Hoist #1, Eyebolt Assembly" required>
+                            <span class="form-hint">Enter the name or identifier of the lifting equipment</span>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="certNumber">Certificate Number <span class="required">*</span></label>
+                            <input type="text" id="certNumber" placeholder="e.g., CERT-2024-001" required>
+                            <span class="form-hint">Unique certificate identifier</span>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="inspectionDate">Inspection Date <span class="required">*</span></label>
+                            <input type="date" id="inspectionDate" required>
+                            <span class="form-hint">When was the inspection performed</span>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="nextDue">Next Inspection Due <span class="required">*</span></label>
+                            <input type="date" id="nextDue" required>
+                            <span class="form-hint">Scheduled date for next inspection</span>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="inspector">Inspector Name</label>
+                            <input type="text" id="inspector" placeholder="Inspector or company name">
+                            <span class="form-hint">Person or organization that performed inspection</span>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="status">Certification Status</label>
+                            <select id="status">
+                                <option value="Valid">Valid & Current</option>
+                                <option value="Pending">Pending Review</option>
+                                <option value="Expired">Expired</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-group full-width">
+                        <label for="notes">Additional Notes</label>
+                        <textarea id="notes" rows="3" placeholder="Add any important notes, defects found, recommendations, etc."></textarea>
+                        <span class="form-hint">Maximum 500 characters</span>
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="submit" class="btn-primary btn-large">✓ Add Certificate</button>
+                        <button type="reset" class="btn-secondary btn-large">Clear Form</button>
+                    </div>
+                </form>
+            </div>
+        </section>
+
+        <!-- About Section -->
+        <section id="about" class="section section-about">
+            <div class="container">
+                <h2>ℹ️ About This System</h2>
+                <div class="about-grid">
+                    <div class="about-card">
+                        <div class="about-icon">📁</div>
+                        <h3>PDF Repository</h3>
+                        <p>All certification PDFs are stored in the GitHub repository and automatically synchronized for easy access and download.</p>
+                    </div>
+                    <div class="about-card">
+                        <div class="about-icon">🔄</div>
+                        <h3>Local Storage</h3>
+                        <p>Your manual entries are securely saved in browser local storage, ensuring data persistence across sessions.</p>
+                    </div>
+                    <div class="about-card">
+                        <div class="about-icon">📊</div>
+                        <h3>Real-time Tracking</h3>
+                        <p>Monitor inspection status, track upcoming due dates, and maintain compliance with all your lifting equipment.</p>
+                    </div>
+                    <div class="about-card">
+                        <div class="about-icon">🔐</div>
+                        <h3>Professional Management</h3>
+                        <p>Comprehensive system for tracking, filtering, and managing all lifting gear inspection certificates.</p>
                     </div>
                 </div>
             </div>
@@ -124,7 +194,24 @@
 
     <!-- Footer -->
     <footer class="footer">
-        <p>&copy; 2024 Lifting Gears Inspection Certificates. All rights reserved.</p>
+        <div class="footer-content">
+            <div class="footer-section">
+                <h4>System Information</h4>
+                <p>Last Updated: <span id="lastUpdated">Never</span></p>
+            </div>
+            <div class="footer-section">
+                <h4>Quick Links</h4>
+                <ul>
+                    <li><a href="#certificates">View Certificates</a></li>
+                    <li><a href="#add">Add Certificate</a></li>
+                    <li><a href="https://github.com/tijoathomas/Lifting-Gears-Inspection-Certificates" target="_blank">GitHub Repository</a></li>
+                </ul>
+            </div>
+            <div class="footer-section">
+                <h4>Support</h4>
+                <p>&copy; 2024 Lifting Gears Inspection Certificates. All rights reserved.</p>
+            </div>
+        </div>
     </footer>
 
     <script src="script.js"></script>
